@@ -1,0 +1,10 @@
+hk-4jwmgtnknk281uryau888k799iitf0t2roui79fzmsobipb9
+
+docker run --name chatgpt-web -d -p 9000:3002 \
+--env OPENAI_API_KEY=hk-4jwmgtnknk281uryau888k799iitf0t2roui79fzmsobipb9 \
+--env AUTH_SECRET_KEY=123123-chenxin \
+--env OPENAI_API_BASE_URL=https://twapi.openai-hk.com  registry.ap-northeast-1.aliyuncs.com/generative/chatgpt-web
+
+
+ΩÃ≥Ãµÿ÷∑:
+https://doc.muluhub.com/docs/chatgpt/chatgpt-1f1ump513a0c0
