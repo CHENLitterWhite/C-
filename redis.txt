@@ -1,0 +1,616 @@
+ 1.Redis简介
+	Redis是一种数据库。能够存储数据、管理数据的一种软件
+2.数据库应用历史：
+			关系型数据库（表，一个表里面放的数据有限，所以要不断的分表）
+	（1）单机数据库时代：一个应用，一个数据库实例
+	（2）缓存、水平切分时代：
+	（3）读写分离时代：
+	（4）分表分库时代（集群）：
+	-----------------------------------------------------------------数据量越来越大，并发访问越来越多
+		非关系型数据库（Nosql）（关系型数据库存取数量有限，连接速度太慢）
+		(种类：redis、mongoDB、HBase......)		
+	彻底改变底层存储机制。采用聚合数据结构存储数据（不再用表-关系数据模型存储数据）
+
+3.Nosql数据模型：
+	关系型数据库：表
+	非关系型数据库：聚合模型----把一组相关联的数据作为一个整体进行存储和管理
+		BSON:数据保存到键值对中、数据和数据之间用逗号隔开，{ }表示对象， [ ]表示数组
+			{
+				id:1001,
+				name:zhengsan,
+				age:20,
+				class:{
+					id:111,
+					name:class1
+					}
+			}
+			{
+				id:1002,
+				name:lisi,
+				age:21,
+				class:{
+					id:111,
+					name:class1
+					}
+			
+			}
+			K-V键值对、列簇、图表模型等
+			Redis采用的是k-v模型存储数据的。
+------------------------------------------------------------------------------------------------------------------
+4.Redis:Remote Dictionary Server(远程字典服务器)  	C、开源的、基于内存运行	【字典--强调索引】
+	Redis中的数据大部分时间都是存储在内存中并且支持持久化，所以效率高，不能存储大量的数据。
+	【适合存储：频繁访问、数据量比较小的数据】---也叫缓存数据库
+特点：
+1 支持数据持久化【Redis支持数据的持久化，可以将内存中的数据保持在磁盘中，重启的时候可以再次加载进行使用】
+2 支持多种数据结构【Redis不仅仅支持简单的key-value类型的数据，同时还提供list,set,zset,hash等数据结构的存储】
+3 支持数据备份【Redis支持数据备份，即master-slave模式的数据备份】
+=================================================================
+5.Redis安装
+	5.0.2版本
+==================================================================
+6.前台启动----- redis-server
+   后台启动----- redis-server&
+   启动redis服务时，指定配置文件redis-server redis.conf &
+===================================================================
+7.关闭Redis服务：
+	1）通过kill命令 
+		ps -ef|grep redis查看pid
+		kill -9 pid
+	2）通过redis-cli shutdown
+===================================================================
+8.Redis客户端：用来连接redis服务，向redis服务端发送命令，并且显示redis服务处理结果。
+	redis-cli: redis自带的客户端，使用命令redis-cli就可以启动redis客户端程序。
+	
+	redis-cli:			默认连接127.0.0.1(本机)上的6379端口的redis服务
+	redis-cli -p 端口号：	连接127.0.0.1(本机)上的指定端口号的redis服务
+	redis-cli -h ip地址 -p 端口号：连接指定ip主机上的指定端口的redis服务
+9.退出客户端：exit
+================================================================
+10.redis基本命令
+	1).测试redis服务性能：
+		redis-benchmark
+	2).查看redis服务是否正常进行--- 如果正常返回PONG
+		ping
+	3).查看redis服务器的统计信息：
+		info			查看redis服务的所有统计信息
+		info [信息段]		查看redis指定的统计信息	eg:info Replication
+	4).Redis的数据库实例：作用类似于Mysql的数据库实例，redis中的数据库实例只能由redis服务来创建和维护，
+			     开发人员不能修改和自行创建数据库实例。默认情况下，redis会自动创建16个数据库实例，并且这些数据库实例进行编号，
+			     这些编号从0开始，一直到15，使用时通过编号来使用数据库；可以通过配置文件，指定redis自动创建的数据库；
+			     redis的每一个数据库实例本身占用的存储空间时很少的，所以也不会造成存储空间的太多浪费。
+			     默认情况下，redis客户端连接的是0号库。可以使用select index切换数据库实例。
+	5).查看当前数据库实例中所有key的数量：dbsize
+	6).查看当前数据库实例中所有的key:keys *
+	7).清空数据库实例：flushdb
+	8).清空所有数据库实例：flushall
+	9).查看redis中的配置信息：config get *
+		查看redis中指定的配置信息：config get parameter
+		
+====================================================================
+11.Redis的五种数据结构:
+	程序是用来处理数据的，Redis(数据库)是用来存储数据库的，程序处理完的数据要存储到ｒｅｄｉｓ中，不同特点的
+	数据要存储在ｒｅｄｉｓ中不同类型的数据结构中。
+		字符串（512MB），					string -->单key:单value->  username:zhengsan 、age:20
+		ｌｉｓｔ列表(一条信息中，有多个有序的数据)，			list      -->单key:多主有序valuｅ(按放入的顺序)->  contacts:133000,xxx,xxx	
+		ｓｅｔ集合(一条信息中，有多个无序无重复的数据)　　　　		set   -->单key:多个无序value->city:beijing shanghai nanchang　　
+		 pojo:(存储一个实体类对象)					hash(哈稀表)-->单个key:对象(属性:值)->student:id:1001,name:zhengsan,age:20
+		 有序集合（关联一个分数，按分数排序）				zset-->单个key:多有序value(相对于参考值)-->city:1500 sh,1000 tj,1200 cq,2000 bj(升序排)
+
+==============================================================================
+12.Redis中的操作命令：
+	1）redis中有关key的操作命令：
+		a).查看数据库中的key：keys pattern【支持通配符】
+				->*:匹配０个或多个字符
+				->?:匹配一个字符
+				->[]:匹配[]里面的任意一个字符，
+			keys *:查看数据库中所有的key【＊：匹配０个或多个字符】
+			keys k*:查看数据库中所有以k开头的key
+			keys h*o:查看数据库中所有以h开头，以o结尾的key
+			keys h?o:查看数据库中所有以h开头，以o结尾的，并且一共只有三个字符的key
+			keys h[abc]llo:查看数据库中所有以h开头以llo结尾的，并且h后面只能取abc中胡词汇表字符的key
+	
+		b).判断key在数据库中是否存在：exists  key 如果存在，则返回1；如果不存在，则返回0
+					   exists  key1 key2 key3 ...返回值是存在的key的数量
+			exists  k1
+			exists  k1  k2  k3  hello
+		c).移动指定key到指定胡数据库实例：move key index
+			move k 1:把k移动到1号数据库实例中
+		d).查看指定的key的剩余生存时间：ttl key   如果key不存在，返回-2；如果key没有设置生存时间，返回-1
+			ttl k1:查看k1的生存时间
+		e).设置key的最大生存时间：expire key seconds
+			expire k2 20:给k2设置最大生存时间为20s
+		f).查看指定key的数据类型：type key
+			type key1:查看key1的数据类型
+		g).重命名key: rename key newkey
+			rename hello key2:把hello重命名为key2
+		h).删除指定的key:del key key2 key3...    返回值为实际删除的数量
+			del k1 k2 k3
+-------------------------------------------------------------------------------------------------------------------------------------------------	
+	2) redis中有关string类型数据的操作命令：
+		a).将string类型的数据设置到redis中：set  键   值
+			set 	zsname(键值) 	zhangsan（value）
+			set 	zsage(键值)     	20(value)
+			set 	totalRows (键值)  	100(value)
+			
+			set	zsage 30   -->如果key已经存在，则后来的value会把以前的value覆盖
+		b).从redis中获取strings类型的数据：get 键
+			get	zsname
+			get	zsage
+			get	totalRows
+		c).追加字符串：append key value  -->返回追加之后的字符串长度
+					　　-->如果key不存在，则新创建一个key,并且把value值设置为value
+			原先：set  phone 138999
+			追加：append phone 8888
+			-->phone  138999888
+		d).获取字符串数据的长度：strlen  key
+			strlen    phone(key)：获取１２８９９９８８８８的长度
+		e).将字符串数值进行加1运算：incr key
+					      -->返回加1运算之后的数据
+					      -->如果key不存在，首先设置一个key,值初始化为0，然后进行incr运算
+					      -->要求key所表示value必需是数值，否则报错
+			incr   zsage
+			incr   aaa:新创建aaa 0-->incr aaa--->aaa 1
+			incr   zsname:报错
+		f).将字符串数值进行减１运算：decr  key
+					      -->返回减1运算之后的数据
+					      -->如果key不存在，首先设置一个key,值初始化为0，然后进行decr运算
+					      -->要求key所表示value必需是数值，否则报错
+		g).将字符串数值进行加offset运算：incrby   key  offset
+					      -->返回加offset之后的数据
+					      -->如果key不存在，首先设置一个key,值初始化为0，然后进行incrby运算
+					      -->要求key所表示value必需是数值，否则报错
+			incrby zsage 10
+		h).将字符串数值进行减offset运算：decrby key  offset
+					     -->返回减offset之后的数据
+					      -->如果key不存在，首先设置一个key,值初始化为0，然后进行decrby运算
+					      -->要求key所表示value必需是数值，否则报错
+
+			decrby zsage 10
+		i).获取字符串中的子字符串：getrange key startIndex  endIndex
+					--->截取字符串key中从startIndex到endIndex的子字符串
+					--->下标从0开始，自左至右，最后一个字符串胡下标是字符串长度-1
+					--->[闭区间]
+					--->字符串中每一个下标也可以是负数,自右至左，从－１开始
+			zhangsan
+			getrange  zsname   2  5   -->angs
+			getrange  zsname   2 -3   -->angs
+			getrange  zsname   0 -1   -->zhangsan
+		j).用value覆盖从下标为startIndex开始的字符串：setrange  key  startIndex  value
+			setrange zsname 5 xiaosan  -->zhangxiaosan
+			zhangxiaosan
+			setrange zsname 5 lao    --->zhanglaoosan(覆盖几个算几个)
+		k).设置string数据的同时，设置它的最大生命周期：setex  key  seconds value
+			setex   k1  20  v1  -->k1最大生存20s,其值为v1
+		l).setnx key value ：
+				--->设置string类型的数据value到redis数据库中，当key不存在时设置成功，否则放弃设置
+			set     zsage    20
+			setnx zsage    30
+		m).批量设置string类型的数据value到redis数据库中:mset key1 value1 key2 value2 ...
+			mset k1 v1 k2 v2 k3 v3 k4 v4 k5 v5
+		n).批量获取string类型的数据：get key1 key2 key3...
+			mget k1 k2 k3 k4 k5 zsname zsage
+		o).msetnx key value:
+			   -->批量设置string类型的数据value到redis数据库中，当所有key都不存在时设置成功，否则放弃设置(只要有一个key存在)
+			msetnx kk1 vv1 kk2 vv2 kk3 vv3 k1 v1-->失败（k1已存在）
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	3).redis中有关list类型数据的操作命令: 单个key-多个有序value 【每个value都是一个string类型】
+				---> 多个value之间是有顺序的,最左侧是表头，最右侧是表尾；
+				---> 每一个元素都有下标，表头元素的下标是0，依次往后排序，最后一个元素的下标是len-1
+				--->每一个元素的下标又可以用负数表示，负下标表示从表尾-1开始计算，依次往前为-2，-3，-4...
+				--->元素在列表中顺序或者下标由放入的顺序来决定
+				--->通过key和下标来操作数据
+		a).将一个或者多个value依次插入到列表的表头(最左侧)：lpush key value1 value2 value3....
+			lpush list01 1 2 3 4->【4 3 2 1】头插法
+			lpush list01 5 ->【5 4 3 2 1】
+		b).获取指定列表中指定下标区间的元素：lrange  key  startIndex  endIndex
+			lrange list01 1 2--->4 3
+			lrange list01 1 -2-->4 3 2
+			lrange list01 0 -1--->5 4 3 2 1
+		c).将一个或多个value依次插入到列表的表尾(最右侧)：rpush key value1 value2 value3...
+			rpush list02 a b c-->【a b c】
+			rpush list02 d e---> 【a b c d e】
+			lpush list02 m n--->【n m a b c d e】
+	                d).从指定列表中移除并且返回表头元素：lpop key
+			lpop list02 --->返回n,表中剩余数据：【m a b c d e】
+		e).从指定列表中移除并且返回表尾元素：rpop key
+			rpop list02 --->返回e,表中剩余数据：【m a b c d】
+	                f).获取列指定列表中指定下标的元素：lindex key
+			lindex list01 2--->3
+	                 g).获取指定列表的长度: llen key
+			llen list01
+		h).根据count的值移除列表中与value相等的数据，移除的个数为count：lrem key value count value-->移除列表中值为value的数据
+				-->count>0:从列表的左侧移除count个跟value相等的数据
+				-->count<0:从列表的右侧移除count个跟value相等的数据	
+				-->count=0:从列表中移除所有跟value相等的数据
+			lpush list03 a a b c a d e b b -->【b b e d a c b a a】
+			lrem  list03 2 a-->【b b e d c b a】
+			lrem  list03 -1 a--->【b b e d c b】
+			lrem  list03 0 b--->【e d c】
+		i).截取指定列表中指定下标区间的元素组成新的列表，并且赋值给key:ltrim key startIndex endIndex
+			lpush list04 1 2 3 4 5-->【5 4 3 2 1】
+			ltrim   list04 1 3--->【4 3 2】
+			lrange list04 0 -1---->4 3 2
+		j).将指定列表中指定下标的元素设置为指定值：list key index value
+			list list04 1 10--->【10 3 2】
+		k).将value插入到指定列表中位于pivot元素之前/之后的位置：linsert key before/after pivot value
+			linsert list04 before 10 50--->【50 10 3 2】
+			linsert list04 after 10 60------>【50 10 60 3 2】
+---------------------------------------------------------------------------------------------------------------------------------------
+	4).redis中有关set类型数据的操作命令：单key-多无序value【value不能重复】
+					-->一个key对应多个value
+					-->value之间没用顺序，并且不能重复
+					-->元素没有下标，直接操作业务数据和数据的个数
+		a).将一个或者多个元素添加到指定集合中：sadd key value1 value2 value3...
+					-->如果元素已经存在，则会忽略
+					-->返回成功加入的元素的个数
+			sadd set01 a b c a-->【a b c   顺序是随机的】 
+			sadd set01 b d e-->【a b c d e】,返回2
+		b).获取指定集合中所有的元素：smembers key
+			smembers set01
+		c).判断指定元素在集合中是否存在：sismember key member
+						-->存在返回1，不存在返回0
+			sismember set01 f-->返回0
+			sismember set01 a-->返回1
+		d).获取指定集合的长度：scard key
+			scard set01
+		e).移除指定集合中一个或者多个元素：srem key member1 member2 member3...
+						-->不存在的元素会被忽略
+						-->返回成功移除的个数
+			srem set01 b d m-->【a c e】
+		f).随机获取指定集合中的一个或多个元素:srandmember key [count]
+						--->count>0:随机获取的多个元素之间不能重复
+						--->count<0:随机获取的多个元素之间可能重复
+			sadd set02 1 2 3 4 5 6 7 8
+			srandmember set02[随机产生一个]
+			srandmember set02 3-->从集合随机产生三个不重复的值
+			srandmember set02 3-->从集合随机产生三个元素，有可能重复
+		g).从指定集合中随机移除一个或多个元素：spop key [count]
+			spop set02-->随机移除一个
+			spop set02 2-->随机移除2个
+		h).将指定集合中的指定元素移动到另一个元素：smove source dest member
+						--->将source中的member移动到dest中
+			smove set01 set02 a
+		i).获取集合key中有,但是其它集合中都没有的元素组成的新集合:sdiff key key1 key2...
+						--->【差集】
+			sdiff set01 set02 set03
+		j).获取所有指定集合中都有的元素组成的新集合：sniter key key1 key2...
+						---> 【交集】
+			sniter set01 set02 set03
+		k).获取所有指定集合中所有元素组成的大集合：sunion key key1 key2....
+						---> 【并集】
+			sunion set01 set02 set03
+---------------------------------------------------------------------------------------------------------------------------------------
+	5).redis中有关hash类型数据的操作命令：单key:多个field-value    【保存的是一个对象,正真的业务数据是value】
+			[key是这个哈希表的键值，field是每个属性的键值]
+						-->studentzs:id-1001
+							      name-zhangsan
+							      age-20
+		a).将一个或多个field-value对设置到哈希表中:hset key field1 value1 field2 value2 field3 value3.....
+						-->如果key field已经存在，把value会把以前的value覆盖
+			hset stu1001 id 1001
+			hset stu1001 name zhangsan age 20
+		b).获取指定哈希表中指定filed的值：hget key field
+			hget stu1001 id
+			hget stu1001 name
+		c).批量将多个field-value设置到哈希表：hmset key field1 value1 field2 value2 field3 value3.....
+						-->与hset相同
+			hmset stu1002 id 1002 name lisi age 21
+		d).批量获取指定哈希表中的field的值：hmget key field1 field2 field3...
+			hmget stu1001 id name age
+		e).获取指定哈希表中所有的field和value:hgetall key
+			hgetall stu1001
+		f).从指定哈希表中删除一个或多个field: hdel key field1 field2 field3.....
+			hdel stu1002  name age
+		g).获取指定哈希表中所有的filed个数：hlen key
+			hlen stu1001
+			hlen stu1002
+		h).判断指定哈希表中是否存在某一个field: hexists key field
+						-->存在返回1，否则返回0
+			hexists stu1001 name
+			hexists stu1002 name
+		i).获取指定哈希表中所有的field列表：hkeys key
+			hkeys stu1001
+			hkeys stu1002
+		j).获取指定哈希表中所有的value列表：hvals key
+			hvals stu1001
+			hvals stu1002
+		k).对指定哈希表中指定field值进行加法运算：hincrby key field int
+			hincrby stu1001 age 5--->20+5=25
+		l).对指定哈希表中指定field值进行浮点数加法运算：hincrbyfloat key field float
+			hset stu1001 score 80.5
+			hincrbyfloat stu1001 score 5.5-->86
+		m).将一个field-value对设置到哈希表中：hsetnx key field value
+						-->当key-value已经存在，则放弃设置；否则，设置file-value
+			hsetnx stu1001 id 1003-->放弃设置
+-----------------------------------------------------------------------------------------------------------------------------------------------
+	6).redis中有关zset类型数据的操作命令：单key-多value   【有序集合】
+						-->本质上是集合，所有元素不能重复
+						-->每一个元素都关联一个分数，redis会根据分数(score)对元素进行自动排序
+						-->分数可以重复，元素不能重复
+						-->既然有序集合中每一个元素都有顺序，那么也有下标
+						-->有序集合中元素的排序规则又和列表中元素的排列规则不同
+		
+		a).将一个或者多个member及其score值加入集合：zadd key score1 member1 score2 member2...
+			zadd  zset01  10   z1  30  z3  20 z2  40  z4
+			zadd  zset01   60  z2--->将原先的z2分数覆盖
+		b).获取指定有序集合中指定下标区间的元素：zrange key startIndex endIndex  [withscores显示分数]
+			zrange zset01 0 -1--->z1 z3 z4 z2
+			zrange zset01 0 -1 withscores
+
+		c).获取指定有序集合中指定分数区间【闭区间】的元素：zrangebyscore key min max  [withscores]
+			zrangebyscore  zset01 30 50 withscores
+		d).删除指定有序集合中一个或多个元素:zrem key member member1 member2 member3....
+			zrem zset01 z3 z4
+		e).获取指定集合中所有元素的个数:zcard key
+			zcard zset01
+		f).获取指定有序集合中分数在指定区间内的元素个数：zcount key min max
+			zcount zset01 10 50
+		g).获取指定有序集合中指定元素的排名(从小到大,排名从0开始): zrank key member
+			zrank zset01 z1 
+		h).获取指定有序集合中，指定元素的分数：zscore key member
+			zscore zset01 z4
+		i).获取指定有序集合中指定元素的排名(从大到小，排名从0开始): zrevrank key member
+			zrevrank zset01 z4
+
+================================================================================
+13.Redis的配置文件: 在redis艮目录下提供redis.conf配置文件
+		 可以配置一些redis服务端运行时的一些参数，
+		 如果不使用配置文件，那么redis会安装默认的参数运行，
+		如果使用配置文件，在启动redis服务时，必须指定所使用的配置文件
+
+
+
+		a). redis配置文件中关于网络的配置：
+			port:指定redis服务所使用的端口，默认使用6379
+			bind:配置客户端连接redis服务时，所能使用的ip地址，默认可以使用redis服务所在主机上的任何一个ip
+			        一般情况下，都会配置一个ip,而且通常是一个真实的ip
+
+			-->如果配置了port和bind，则客户端连接redis服务时，必须指定端口和ip
+				eg：redis-cli -h 192.168.43.133 -p 6380   【启动】
+				        redis-cli -h 192.168.43.133-p 6380 shutdown  【关闭】
+
+			tcp-keepalive:连接保活策略，服务器端多长时间向客户端发送一次ACK请求，判断客户端是否在使用。
+				       长时间不使用的客户端会被断开，对在使用的客户端进行连接维护
+
+		b).常规配置：
+			loglevel:	配置日志级别，开发阶段可以设置成debug,生产阶段通常设置为notice或者warning
+			logfile:	指定日志文件。redis在运行过程中会输出一些日志信息，
+				默认情况下，这些信息会输出到控制台，我们可以使用logfile配置日志文件。
+			databases:指定redis服务默认创建的数据库实例个数，默认值是16
+			
+		c).安全配置：
+			requirepass:设置访问redis服务时所使用的密码，默认不使用。
+				    此参数必须在protected-mode=yes时才起作用。--->启动redis的安全模式
+				    一旦设置了密码验证，客户端连接redis服务时，必须使用密码连接：redis-cli -h ip port -a pwd
+
+===========================================================================================
+14.redis的持久化：【redis的数据放在内存中的，这样在加快读取速度的同时也对数据的安全性产生了新的问题，即当redis所在
+		 服务器发生荡机(或者关机),数据库里的所有数据将会全部丢失。为了解决这个问题redis提供了持久化功能--RDB和AOF】
+
+	-->redis提供持久化策略，在适当的时机采用适当的手段把内存中的数据持久化到内存磁盘中，每次redis服务启动时，都把磁盘上的数据再次加载内存中使用。
+
+		a). RDB策略【RDB策略是redis默认的持久化策略,很容易把最后几条数据没有保存】：在指定时间间隔内，redis服务执行指定次数的写操作，会自动触发一次持久化操作。
+				
+				save <seconds><changes>:配置持久化策略
+
+				默认的策略：如果要禁用RDB策略，将save全部注释掉
+					1分钟内改变了1万次
+					或者5分钟内该改变了10次
+					或者15分钟内改变了1次
+			      
+			      dbfilename:Redis RDB持久化数据生成的文件名，默认是dump.rdb，也可以自己配置
+			      dir：Redis持久化数据生成文件保存的目录，默认是 ./ --->redis启动目录，也可以自己配置
+
+		b).AOF策略【会使效率大大折扣】：采用操作日志来记录进行每一次写操作,每次redis服务启动时，都会重新执行一遍操作日志中的操作。【把写命令记录下来】		
+					        ---->效率低下，redis默认不开启
+				
+					        appendonly:配置是否开启AOF策略
+					        appendfilename:配置操作日志文件
+
+
+		小结：根据数据的特点决定开启哪种持久化策略，一般情况下，开启RDB足够了。
+
+===================================================================================================================
+15.redis的事务：
+	事务：		把一组数据库命令放在一起执行，保证操作原子性【强调事务的一致性】，要么同时成功，要么同时失败。
+	Redis的事务：	允许在把一组redis命令放在一起执行，把命令进行序列化【按照放入的顺序】,然后一起执行，保证部分原子性。
+	
+	1).multi:用来标记一个事务的开始。
+		multi
+		set k1 v1
+		set k2 v2
+		exec
+	2).exec:用来执行事务队列中所有的命令
+
+	3).redis的事务只能保证部分原子性:
+		a).如果一组命令中，有在压入事务队列过程中发生错误的命令，则本事务中所有的命令都不执行，能够保证事物的原子性。
+			multi
+			set k3 v3
+			seta kk vv--->命令错误
+			set k4 v4
+			exec--------->报错，对没有执行
+		b).如果一组命令中，在压入队列过程中正常，但是在执行事务队列命令时发生了错误，则只会影响发生错误的命令，不会影响其它命令的执行，不能保证事物的原子性。
+			multi
+			set k3 v3
+			incr k1------>不执行，语法没有错误
+			set k4 v4
+			exec
+	4).discard: 清除所有已经压入队列中的命令，并且结束整个事务
+			multi
+			set k5 v5
+			set k6 v6
+			discard
+	5).watch:监控某一个键,当事务在执行过程中，此键代码的值发生变化，则本事务放弃执行；否则，正常执行
+		    watch key
+		【举例:比如一个客户端想decrby  balance 50，要先判断version有没有被改变作为一个判断条件,决定要不要修改balance[并且修改balance的同时也会修改version]
+		           在此客户端修改balance时,另一个客户端也想改变balance,也要判断version有没有被修改,假设前一个客户端先修改了balance,并且使version要发生了改变，
+		           则发现此时version的值不相同了，则修改失败】---跟乐观锁类似
+
+		"update table set balance=balance-dept,version=version+1
+		where id=xxxx and version=100"
+		
+		set balance 100
+		set balance2 1000
+		set version 1 
+		watch version
+		multi
+		decrby  balance 50
+		incrby  balance2 50
+		exec
+	6).unwatch:放弃是监控所有的键
+		unwatch  key
+
+		watch version
+		unwatch  key
+		multi
+		decrby  balance 50
+		incrby  balance2 50
+		exec
+==============================================================================================================
+16.redis消息的发布与订阅：
+	redis客户端可以订阅某个频道，消息的发布者(也是客户端)往频道上发布消息，所有订阅此频道的客户端都能接受到消息。
+
+	1).subscribe:订阅一个或多个频道的消息
+		subscribe  ch1 ch2 ch3
+	2).pushlish:将消息发布到指定频道
+		pushlish ch1  hello
+	3).psubscribe:订阅一个或多个频道的消息，频道名支持通配符
+		psubscribe news*
+===================================================================================
+17.redis的主从复制：主多从少，主写从读，读写分离，主写同步复制到从
+	主机数据更新后根据配置和策略，自动同步到从机的master/slave机制，Master以写为主，Slave以读为主
+
+搭建一主二从集群：
+1).搭建三台redis服务：使用一台redis模拟三台redis服务
+          提供三分redis配置文件：redis6379.conf、redis6380.conf、redis6381.conf
+		cp redis.conf redis6379.conf
+		cp redis.conf redis6380.conf
+		cp redis.conf redis6381.conf	
+		修改端口号:redis6379.conf-->
+				port:6379
+		  		pidfile /var/run/redis_6379.pid
+				logfile "6379.log"
+				dbfilename dump6379.rdb
+		  	redis6380.conf-->
+				port:6380
+		  		pidfile /var/run/redis_6380.pid
+				logfile "6380.log"
+				dbfilename dump6380.rdb
+		  	redis6381.conf-->
+				port:6381
+		  		pidfile /var/run/redis_6381.pi
+				logfile "6381.log"	
+				dbfilename dump6381.rdb	
+	分使用三个redis配置文件，启动三个redis服务:
+		redis-server  redis6379.conf &
+		redis-server  redis6380.conf &
+		redis-server  redis6381.conf &
+2).通过redis客户端分别连接三台redis服务：
+		redis-cli -h 127.0.0.1 -p 6379
+		redis-cli -h 127.0.0.1 -p 6380
+		redis-cli -h 127.0.0.1 -p 6381
+			
+3).查看三台redis服务在集群中的主从角色
+		info    relication ---> role:master 
+		默认情况下，所有的redis服务都是主机，即都能写和读，但是都还没有从机。
+4).先在6379进行写操作:--->测试三台服务是否独立
+		set k1 v1
+	三台redis服务互相独立，互不影响。
+5).设置主从关系:设从不设主【设置6379为主机】
+	在6380上执行：slaveof  127.0.0.1 6379
+		在6380上执行：info    relication-->role:slave
+     	在6381上执行：slaveof  127.0.0.1 6379
+		在6381上执行：info    relication-->role:slave
+	在6379上执行：info    relication-->查看是否连接
+6).全量复制:一旦主从关系确定，会自动把主机上已有的数据同步复制到从库。
+	在6380和6381上执行：keys *--->发现都有 k1 v1
+7).增量复制：主库写数据会自动同步到从库
+	在6379上添加数据：
+		set k2 v2
+	在6380和6381上执行：keys *--->发现都有 k2 v2
+8).主写从读，读写分离：
+	在6380和6381上执行：set k3 v3--->报错，从库只能读，不能写
+9).主机菪机：从机原地待命（从机可以读）
+	关闭6379服务：redis-cli -h 127.0.0.1 -p 6379 shutdown
+     	查看6380和6381服务的从机角色：info    relication
+10).主机恢复：一切恢复正常
+	重启6379服务：redis-server redis6379.conf &
+	客户端6380连接6379:redis-cli -h 127.0.0.1 -p 6379
+	客户端6381连接6379:redis-cli -h 127.0.0.1 -p 6379
+11).从机宕机:主机少一个从机、其它从机不变
+	关闭6380服务:redis-cli -h 127.0.0.1 -p 6380 shutdown
+	查看6379服务的从机角色：info    relication
+	查看6380和6381服务的从机角色：info    relication
+12).从机恢复：需要重新设置主从关系
+	重启6380服务：redis-server redis6380.conf &
+	客户端6380连接6379:redis-cli -h 127.0.0.1 -p 6379
+
+	在6380上执行：slaveof  127.0.0.1 6379
+13).从机上位：
+	a).主机宕机:从机原地待命（从机可以读）
+		关闭6379服务：redis-cli -h 127.0.0.1 -p 6379 shutdown
+		查看6380和6381服务的从机角色：info    relication
+	b).从机断开原来的主从关系：
+		在6380上执行：slaveof no one
+		查看6380服务的从机角色：info    relication
+	c).重新设置主从关系：
+		在6381上执行：slaveof  127.0.0.1 6380
+		在6380上执行：info    relication-->role:slave
+		在6381上执行：info    relication-->role:slave
+	d).之前的主机恢复:变成孤家寡人,没有从机了
+		重启6379服务：redis-server redis6379.conf &
+		客户端连接6379:redis-cli -h 127.0.0.1 -p 6379
+	e).天堂变地狱
+		在6379上执行：slaveof  127.0.0.1 6381 --->6381从属于6380，6379从属于6381
+		在6381上执行：info replication-->即是主机又是从机，只要是从机都不能写数据
+
+	小结：一台主机可以配置多台从机，一台从机也可以配置多台从机，从而形成一个庞大的集群
+	          减轻了一台主机的压力，但是增加了服务间的延迟时间。
+=============================================================================
+18.redis哨兵模式：从机宕机，从机上位的自动版
+	1).搭建三台redis服务：使用一台redis模拟三台redis服务
+	    搭建一主二从的集群框架（17里的前5步）
+	2).提供一个哨兵的配置文件：【默认提供了sentinel.conf-->里面有很多我们用不到的参数】
+	     在redis安装目录下创建配置文件: redis_sentinel.conf
+		添加：sentinel monitor dc-redis 127.0.0.1 6379 1
+			【指定监控主机的ip地址,port端口,得到哨兵的投票数(当哨兵投票数大于或等于此数(1)时切换主从关系)】
+					-->一般性能好的，票数多
+	3).启动哨兵服务:
+		redis-sentinel redis_sentinel.conf[这里用的是相对路径，可以设置为绝对路径]
+	4).主机宕机：
+		关闭6380服务:redis-cli -h 127.0.0.1 -p 6380 shutdown
+	5).之前的主机恢复:
+		重启6379服务：redis-server redis6379.conf &
+		客户端连接6379:redis-cli -h 127.0.0.1 -p 6379
+	      ---->6379从属于新的主机
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+	
+

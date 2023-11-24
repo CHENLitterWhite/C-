@@ -1,0 +1,252 @@
+密码：000000
+
+一、数据库（CURD） --库的名字区分大小写的
+
+创建一个名称为mydb1的数据库
+create  database mydb1; 
+创建的时候指定字符集utf-8(可以修改配置文件)
+create database mydb2 character set utf8;
+创建的时候指定字符集utf-8,并对数据进行检查
+create datebase mydb3 character set utf8 collate utf8_general_ci;
+
+显示所有的数据库
+show databases;
+显示创建数据库的语句信息
+show create databases mydb1;
+
+修改数据库的字符集
+alter database mydb1 character set utf8;
+
+删除数据库
+drop database mydb1;
+=================================================
+二、表的（CURD）
+create table t1(id int,name varchar(20)); --->报错，没用指定库
+使用哪个库
+use mydb1;
+看当前所在的库
+status;
+select database() from dual;
+显示创建的表
+show create table t1;
+查看表的结构
+desc t1;
+
+修改表
+	更改表的名字：rename table t1 to tt;
+	增加一个字段：alter table t1 add column height float;
+	删除一个字段：alter table t1 drop column height;
+	修改一个字段：alter table t1 modify height float;
+	修改表的字符集：alter table t1 charavter set utf8(gbk);
+
+删除表
+drop table table_name;
+
+创建表常用到的数据类型：
+ int
+char
+varchar
+timestamp
+
+================================================
+表数据的CURD
+
+1.创建一个表
+	create table employee(
+		id  		int,
+		name		varchar(20),
+		sex		int,
+		birthday		data,
+		salary		double,
+		entry_date	date,
+		resume		text
+	); [如果没用创建成功，可以删除tab键]
+
+	insert into employee values(1,'张三',1,'1999-01-21',1500,'2020-10-21','一个大牛');
+	insert into employee （id,name,sex,birthday,salary,entry_date,resume）values(1,'李四',1,'1999-01-21',1500,'2020-10-21','一个大牛');
+	insert into employee （id,name,sex,birthday,salary,entry_date,resume）values(1,'王五',1,'1999-01-21',1500,'2020-10-21','一个大牛');
+2.retrieve数据
+	select  *from  employee;
+
+	select id,name as "名字"，salary "月薪"，salary*12  年薪  from employee  where id >=2;
+	说明：若表的列太多，可以使用\G
+				\g（不多）
+3.update数据
+	--将所有员工薪水都增加500
+		update employee set salary=salary+500;
+	--将王五的员工薪水修改为10000，resume改为也是一个中牛
+ 		updaet employee set salary=10000,resume='也是一个中牛' where name='王五'；
+
+4.delete数据
+	--删除表中王五的信息
+		delete from employee where name='王五'；
+	--删除表中所有记录
+		delete from employee；
+	--使用truncate删除（不建议，不能恢复）
+
+===================================================================================================
+SQL查询案例
+
+创建一个学生表
+
+
+
+
+top-N 问题
+	按math成绩从小到大排序，求math成绩在5-8名的
+		select *from student order by math limit 4,4;
+
+分组查询
+	--查出
+===================================================================================================
+相关函数（很多--用到的时候查）
+
+时间相关函数：
+select sysdate from dual;   /select sysdate();
+select now();/year(now())/month(now())/day(now())/date(now());
+select CURRENT_DATE(),CURRENT_TIME(),CURRENT_TIMESTAMP() from dual;
+select addtime(now(),1);
+select DATE_ADD('1999-01-21',INTERVAL  20 DAY/YEAR);
+select DATE_SUB('1999-01-21',INTERVAL  20 DAY/YEAR);
+select DATEDIFF('------','-------');   //时间差值-天
+select date_format(now(),format);//format为格式  '%Y-%m-%d'    类似于printf()
+select date_format();可以进行日期转换
+--------------------------------------------------------------------------------------------------------------------
+字符串
+select concat('111','222','333');  //可以连接多个
+select instr(string,substring);    //返回字串在母串中的位置，不存在返回0
+select ucase('hello'),lcase('HELLO'); //转大小写
+select left('1113343',3);  //返回111
+select length(string);
+select replace('1112334','111','222');  //替换
+select strcmp('abc','bcd');	//比较-1 1 0
+select substring(str,position,length);   //从str中，从position开始取length个字符 从1开始
+select ltrim(string2)/rtrim(string2)/trim(string2);  //去掉前端空格和后端空格
+select str_to_date('2013-6-04 05:14:15','%Y-%c-%d %h:%i:%s') from dual;   //字符串转日期
+------------------------------------------------------------------------------------------------------------------
+数值相关
+select abs(-100);  //
+select bin(1000);  //十进制转二进制
+select ceiling(12.03); //向上取整
+select floor();   //向下取整
+select conv(100,10,7);  //进制转换。将100从10进制转换成7进制
+select format(12.015,2);//保留小数位
+select least(num1,num2,num3,....);//求最小值
+select mod(num,denominator);//求余
+select read(seed) from dual;  //取随机值
+--------------------------------------------------------------------------------------------------------------------
+
+============================================================================
+多表查询：
+
+1.执行脚本文件scott_data.sql
+	mysql>source  /home/chen/sql/scott_data.sql;
+
+2.交叉连接---相当于笛卡尔积
+	select e.*,d.* from emp e cross join dept d;   
+	//select * from emp dept;
+3.自然连接-内连接(指使用等号"="比较两个表的连接列的值，相当于两表执行笛卡尔后，取两表连结列值相等的记录)
+	查询emp表和dept表中的所有信息（）
+	--SQL99:
+		select e.ename,e.job,d.deptno,d.dname from emp e inner join dept d on e.deptno=d.deptno; (inner可以省略)
+	--oracle
+		select e.ename,e.job,d.deptno,d.dname from emp e  ,  join dept d where e.deptno=d.deptno;
+
+4.外连接
+	左外连接
+		select e.ename,e.job,d.deptno,d.dname from dept d left outer join emp e on e.deptno=d.deptno;
+
+	右外连接（与左外连接相反，指将右表的所有记录与左表符合条件的记录，返回的结果除内连接的结果，还有右表不符合条件的记录，并在左表相应列中填NULL）
+		select e.ename,e.job,d.deptno,d.dname from dept d right outer join emp e on e.deptno=d.deptno;
+
+-------------------------------
+练习：
+	1 查询员工信息，员工号，姓名，月薪，部门名称
+		select e.empno,e.ename,e.sal,d.dname from emp e,dept d where e.deptno=d.deptno;
+		select e.empno,e.ename,e.sal,d.dname from emp e inner join dept d on e.deptno=d.deptno;
+	2 统计各个部门员工总人数-要求显示部门名称
+		select d.deptno,d.dname,count(e.empno) from emp e,dept d where e.deptno=d.deptno group by d.deptno,d.dname;
+		select d.deptno,d.dname,count(e.empno) from emp e inner join dept d on e.deptno=d.deptno group by d.deptno,d.dname;
+		---显示40号部门（外连接）
+		--右外连接
+		select d.deptno,d.dname,count(e.empno) from emp e right outer join dept d on e.deptno=d.deptno group by d.deptno,d.dname;
+		----左外连接
+		select d.deptno,d.dname,count(e.empno) from dept d left outer join emp e on e.deptno=d.deptno group by d.deptno,d.dname;
+
+		注意：[count(*)]
+
+===================================================================================================
+自连接（指用表的别名实现表自身的连接---对同一个表取不同的别名，进行操作）
+		练习：
+			查询员工、老板信息，显示：xxx的老板是yyy
+				1 mysql不支持用 || 连接两个字符串(使用concat函数)
+					select concat(e.ename,'的老板是',b.ename) from emp e inner join emp b on e.mgr=b.empno;
+			        --要显示king的信息，需要使用外连接
+				1 mysql不支持nvl函数（使用ifnull）
+					左外连接
+					select concat(e.ename,'的老板是',nvl(b.ename,'his wife')) from emp e left outer join emp b on e.mgr=b.empno;
+					select concat(e.ename,'的老板是',ifnull(b.ename,'his wife')) from emp e left outer join emp b on e.mgr=b.empno;
+					右外连接
+					select concat(e.ename,'的老板是',ifnull(b.ename,'his wife')) from emp b right outer join emp e on e.mgr=b.empno;
+
+=====================================================================================================
+表的约束:(对插入的数据进行检查,防止输入的数据错误)
+	*定义主键约束   		primary key;    不允许为空，不允许重复
+	*定义主键自动增长 		auto_increment    不允许重复
+	*定义唯一约束		unique
+	*定义非空约束		not  null
+	*定义外键约束		constraint ordersid_FK foreign key(ordersid) references orders(id);
+	*删除主键			alter table tablename drop primary key;
+
+准备两个表:(下面的建表语句在执行的时候若不能正常执行, 可以尝试把tab去掉)
+create table class (
+id INT(11) primary key auto_increment,
+name varchar(20) unique
+);
+
+create table student (
+id INT(11) primary key auto_increment, 
+name varchar(20) unique,
+passwd varchar(15) not null,
+classid INT(11),
+constraint stu_classid_FK foreign key(classid) references class(id)
+);
+	
+	向myclass表中插入两条数据:
+	insert into class(name) values('音乐');
+	insert into class(name) values('体育');
+	insert into class(id, name) values(5, '美术');
+	insert into class(name) values('文化');
+	注意: 要插入的是部分列, 一定要在class表名后面写上列名, 表示要插入哪些列
+	      由于class表的id是主键, 可以不用显示的插入主键的值, mysql会自动插入,而且会自动增长,确保不会重复.
+
+
+向student表中插入数据:	
+  正常插入一条记录:
+	insert into student(name, passwd, classid) values('xiaohong', 'xxxxxx', 1);
+	1 测试主键的非空性
+		insert into student(id, name, passwd, classid) values(null, 'xiaowen', 'xxxxxx', 1);
+			注意: 若给主键插入一个null, mysql会自动插入一个有效的值, 所以mysql的主键肯定不会为空
+			
+	2 测试主键的唯一性约束
+		insert into student(id, name, passwd, classid) values(1, 'xiaoliu', 'xxxxxx', 1);
+		----->ERROR 1062 (23000): Duplicate entry '1' for key 'PRIMARY'
+	
+	3 测试name列的唯一性
+		insert into student(name, passwd, classid) values('xiaohong', 'xxxxxx', 2);
+		-----> ERROR 1062 (23000): Duplicate entry 'xiaohong' for key 'name'
+		
+		insert into student(name, passwd, classid) values(null, 'xxxxxx', 2);
+		注意: name为unique约束, 只是不能重复, 但是可以为空
+	
+	4 测试passwd的非空约束
+		insert into student(name, passwd, classid) values('xiaohua', null, 2);
+		-----> ERROR 1048 (23000): Column 'passwd' cannot be null
+		
+	5 测试classid的外键约束
+		insert into student(name, passwd, classid) values('meizi', 'mmmm', 10);
+		----->OREIGN KEY (`classid`) REFERENCES `class` (`id`))
+		在class表中没有id为10的列的值.
+
+================================================================================
+mySQL中文乱码
